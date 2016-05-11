@@ -2,57 +2,63 @@
 
 #The data are in the GitHub repo as Schools.csv.
 
-
-setwd("~/Dropbox/Cuyler School/Applied Stats/STAT502/Week 12")
+#Load relevant R packages
 library(ggplot2)
+library(gplots)
+library(agricolae)
 library(lattice)
 library(multcomp)
-df <- read.csv("./HW11_Schools.csv")
+
+#Download data from GitHub
+if(!file.exists("./Schools.csv")){download.file(url = "https://raw.githubusercontent.com/cdo03c/ANOVA-Coursework/master/Schools.csv", destfile = "./Schools.csv")}
+
+#Load flora.csv data into a data frame
+df <- read.csv("./Schools.csv")
+str(df)
+
+#Turn hours into categorical variables
 df$hours <- factor(df$hours)
 
-##Question 1
+##1)	Plot the data to show the response variable  (master_score) vs. hours training for each method (on one graph).
 g <- ggplot(df, aes(hours, mastery))
 g <- g + geom_point(aes(shape = Method, color = Method))
 g <- g + xlab("Hours of Training")
 g <- g + ylab("Mastery Score")
 g
 
-##Question 2
-df.anova <- aov(mastery ~ hours + Method + hours*Method, df)
+##2)	Run an ANOVA to compare the two methods at each level of training with the output ANOVA table and appropriate mean comparisons.
+df.anova <- aov(mastery ~ hours*Method, df)
 anova(df.anova)
-posthoc <- glht(df.anova, linfct = mcp(Method = "Tukey"))
-summary(posthoc)
+TukeyHSD(df.anova)
 
-##Question 3
+##Use ANCOVA to characterize the effect of increasing number of training hours on mastery scores for the two teaching methods.   Fit the response as a polynomial (order 2) function of training hours.  Show the output and indicate what factors are significant.
 
 #Step 1: Are all regression slopes = 0.
 #Method A
+df$hours <- as.integer(df$hours)
 df$hours2 <- df$hours^2
-dfA <- df[df$Method == 'A',]
-dfA.fit <- lm(mastery ~ hours + hours2 + hours*hours2, dfA)
-print(summary.lm(dfA.fit))
+dfA.fit <- lm(mastery ~ hours + hours2 + hours*hours2, df[df$Method == 'A',])
+summary.lm(dfA.fit)
 
 #Method B
-dfB <- df[df$Method == 'B',]
-dfB.fit <- lm(mastery ~ hours + hours2 + hours*hours2, dfB)
-print(summary.lm(dfB.fit))
+dfB.fit <- lm(mastery ~ hours + hours2 + hours*hours2, df[df$Method == 'B',])
+summary.lm(dfB.fit)
+
+#In both cases, the simple linear regressions are significant, so the slopes are not = 0.
 
 #Step 2: Are the slopes equal?
+
 df.ancova <- aov(mastery ~ hours + hours2 + Method + hours*Method + hours2*Method, df)
 anova(df.ancova)
 
+#The interaction terms for hours and hours2 are significant so the slopes are not equal.
+
 #Step 3: Fit Unequal Slopes Models
 
-dfA.fit2 <- lm(mastery ~ hours + hours2-1, dfA)
+dfA.fit2 <- lm(mastery ~ hours + hours2-1, df[df$Method == 'A',])
 print(summary(dfA.fit2))
 
-dfB.fit2 <- lm(mastery ~ hours + hours2-1, dfB)
+dfB.fit2 <- lm(mastery ~ hours + hours2-1, df[df$Method == 'B',])
 print(summary(dfB.fit2))
 
-posthoc2
-
-plot(posthoc2)
-
-fit4 <- lm(mastery ~ hours + Method + hours*Method - 1, df)
-summary(fit4)
-lm(fit4)
+#Method B produced greater (p><0.05) mastery skills compared to Method A in all but the lowest level of training.  Methods differed significantly in the linear trend with hours, and we found a greater (p<0.05) linear  increase in Method B.  Method B also had greater degree of positive quadratic  curvature (p<0.05) compared to Method A. 
