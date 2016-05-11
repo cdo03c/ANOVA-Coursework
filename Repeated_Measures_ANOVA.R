@@ -11,6 +11,7 @@ if(!file.exists("./flora.csv")){download.file(url = "https://raw.githubuserconte
 
 #Load flora.csv data into a data frame while removing NULL columns
 df <- read.csv("./flora.csv")[,1:4]
+str(df)
 
 #Turning plot and time into categorical variables
 df <- within(df, {
@@ -56,3 +57,5 @@ anova(fit.vc2)
 fit.sp2 <- gls(resp ~ trt * time, data = df,
               corr = corCAR1(form= ~ 1 | plot))
 anova(fit.sp2)
+
+#The F-value for treatment in spatial power is lower than in the variance components, but still significant.  However, the F-value in the spatial power model is more than twice the size at the variance components model, which made it significant.
